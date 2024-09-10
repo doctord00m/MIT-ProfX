@@ -1,0 +1,12 @@
+{% extends 'base.html' %}
+
+{% block title %}Request Timetable Change{% endblock %}
+
+{% block content %}
+<h2>Request Timetable Change</h2>
+<form method="post">
+    {% csrf_token %}
+    {{ form.as_p }}
+    <button type="submit" class="btn">Submit Request</button>
+</form>
+{% endblock %}

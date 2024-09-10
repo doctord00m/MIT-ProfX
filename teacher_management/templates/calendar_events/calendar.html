@@ -1,0 +1,161 @@
+{% extends 'base.html' %}
+{% load static %}
+
+{% block content %}
+{% csrf_token %}
+<div id='calendar'></div>
+
+<!-- Event Modal -->
+<div id="eventModal" class="modal" style="display: none;">
+    <div class="modal-content">
+        <span class="close">&times;</span>
+        <h2 id="modalTitle">Add Event</h2>
+        <form id="eventForm">
+            <input type="hidden" id="eventId">
+            <input type="text" id="eventTitle" placeholder="Event Title" required>
+            <select id="eventSubject" required>
+                <option value="">Select Subject</option>
+                {% for subject in subjects %}
+                    <option value="{{ subject.id }}">{{ subject.name }}</option>
+                {% endfor %}
+            </select>
+            <select id="eventType" required>
+                <option value="">Select Event Type</option>
+                <option value="Lab Record Submission">Lab Record Submission</option>
+                <option value="Viva Voce & Record Submission">Viva Voce & Record Submission</option>
+                <option value="Lab midsem exam">Lab midsem exam</option>
+                <option value="Midsem Exam">Midsem Exam</option>
+                <option value="Quiz">Quiz</option>
+                <option value="Assignment">Assignment</option>
+                <option value="Test">Test</option>
+            </select>
+            <textarea id="eventNotes" placeholder="Additional Notes"></textarea>
+            <button type="submit" id="saveButton">Save Event</button>
+            <button type="button" id="deleteButton" style="display: none;">Delete Event</button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        var csrftoken = document.querySelector('[name=csrfmiddlewaretoken]').value;
+        var calendarEl = document.getElementById('calendar');
+        var calendar = new FullCalendar.Calendar(calendarEl, {
+            initialView: 'dayGridMonth',
+            headerToolbar: {
+                left: 'prev,next today',
+                center: 'title',
+                right: 'dayGridMonth,timeGridWeek,timeGridDay,listMonth'
+            },
+            events: '{% url "get_events" %}',
+            editable: true,
+            selectable: true,
+            selectMirror: true,
+            dateClick: function(info) {
+                showEventModal(null, info.date);
+            },
+            eventClick: function(info) {
+                showEventModal(info.event);
+            }
+        });
+        calendar.render();
+
+        function showEventModal(event, date) {
+            var modal = document.getElementById('eventModal');
+            var form = document.getElementById('eventForm');
+            var modalTitle = document.getElementById('modalTitle');
+            var deleteButton = document.getElementById('deleteButton');
+
+            if (event) {
+                modalTitle.textContent = 'Edit Event';
+                document.getElementById('eventId').value = event.id;
+                document.getElementById('eventTitle').value = event.title;
+                document.getElementById('eventSubject').value = event.extendedProps.subject;
+                document.getElementById('eventType').value = event.extendedProps.type;
+                document.getElementById('eventNotes').value = event.extendedProps.notes;
+                deleteButton.style.display = 'inline-block';
+            } else {
+                modalTitle.textContent = 'Add Event';
+                form.reset();
+                document.getElementById('eventId').value = '';
+                deleteButton.style.display = 'none';
+            }
+
+            modal.style.display = 'block';
+
+            form.onsubmit = function(e) {
+                e.preventDefault();
+                var eventData = {
+                    id: document.getElementById('eventId').value,
+                    title: document.getElementById('eventTitle').value,
+                    start: date,
+                    subject: document.getElementById('eventSubject').value,
+                    type: document.getElementById('eventType').value,
+                    notes: document.getElementById('eventNotes').value
+                };
+                saveEvent(eventData);
+                modal.style.display = 'none';
+            };
+
+            deleteButton.onclick = function() {
+                if (confirm('Are you sure you want to delete this event?')) {
+                    deleteEvent(event.id);
+                    modal.style.display = 'none';
+                }
+            };
+        }
+
+        function saveEvent(eventData) {
+            var url = eventData.id ? '{% url "update_event" 0 %}'.replace('0', eventData.id) : '{% url "create_event" %}';
+            fetch(url, {
+                method: eventData.id ? 'PUT' : 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': csrftoken
+                },
+                body: JSON.stringify(eventData)
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (eventData.id) {
+                    var existingEvent = calendar.getEventById(eventData.id);
+                    if (existingEvent) {
+                        existingEvent.remove();
+                    }
+                }
+                calendar.addEvent(data);
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        function deleteEvent(eventId) {
+            fetch('{% url "delete_event" 0 %}'.replace('0', eventId), {
+                method: 'DELETE',
+                headers: {
+                    'X-CSRFToken': csrftoken
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    var existingEvent = calendar.getEventById(eventId);
+                    if (existingEvent) {
+                        existingEvent.remove();
+                    }
+                }
+            })
+            .catch(error => console.error('Error:', error));
+        }
+
+        // Close modal when clicking on the close button or outside the modal
+        window.onclick = function(event) {
+            var modal = document.getElementById('eventModal');
+            if (event.target == modal || event.target.className == 'close') {
+                modal.style.display = 'none';
+            }
+        }
+    });
+</script>
+{% endblock %}

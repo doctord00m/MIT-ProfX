@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+
+{% block title %}Scan QR Code{% endblock %}
+
+{% block content %}
+<h2>Scan QR Code</h2>
+<div id="qr-reader"></div>
+<form id="attendance-form" method="POST">
+    {% csrf_token %}
+    <input type="hidden" name="qr_data" id="qr-data">
+</form>
+
+<script src="https://unpkg.com/html5-qrcode"></script>
+<script>
+    function onScanSuccess(decodedText, decodedResult) {
+        document.getElementById('qr-data').value = decodedText;
+        document.getElementById('attendance-form').submit();
+    }
+
+    var html5QrcodeScanner = new Html5QrcodeScanner(
+        "qr-reader", { fps: 10, qrbox: 250 });
+    html5QrcodeScanner.render(onScanSuccess);
+</script>
+{% endblock %}

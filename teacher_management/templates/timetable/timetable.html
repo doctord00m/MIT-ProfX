@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+
+{% block title %}Timetable{% endblock %}
+
+{% load timetable_tags %}
+
+{% block content %}
+<h2>Timetable</h2>
+<table class="timetable">
+    <thead>
+        <tr>
+            <th>Days/Timings</th>
+            {% for slot in slots %}
+                <th>{{ slot }}</th>
+            {% endfor %}
+        </tr>
+    </thead>
+    <tbody>
+        {% for day in days %}
+            <tr>
+                <td>{{ day }}</td>
+                {% for slot in slots %}
+                    <td>
+                        <div class="timeslot" onclick="toggleDetails('{{ day }}', '{{ slot }}')">
+                            <span class="timeslot-summary">{{ slot }}</span>
+                            <div class="timeslot-details" id="details-{{ day }}-{{ slot }}" style="display: none;">
+                                {% with class=timetable|get_item:day|get_item:slot %}
+                                    {% if class %}
+                                        <strong>Name:</strong> {{ class.subject }}<br>
+                                        <strong>Faculty in Charge:</strong> {{ class.teacher.username }}<br>
+                                        {% if class.description %}
+                                            <strong>Description:</strong> {{ class.description }}<br>
+                                        {% endif %}
+                                    {% else %}
+                                        <strong>No class scheduled.</strong>
+                                    {% endif %}
+                                {% endwith %}
+                            </div>
+                        </div>
+                    </td>
+                {% endfor %}
+            </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% if user.userprofile.role == 'teacher' %}
+    <a href="{% url 'update_timetable' %}" class="btn">Request Timetable Change</a>
+{% endif %}
+{% endblock %}
+
+<script>
+function toggleDetails(day, slot) {
+    var details = document.getElementById('details-' + day + '-' + slot);
+    if (details.style.display === 'none') {
+        details.style.display = 'block';
+    } else {
+        details.style.display = 'none';
+    }
+}
+</script>
+
+<style>
+.timetable {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+.timetable th, .timetable td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: center;
+}
+
+.timeslot {
+    cursor: pointer;
+}
+
+.timeslot-summary {
+    font-weight: bold;
+}
+
+.timeslot-details {
+    margin-top: 10px;
+    background-color: #f9f9f9;
+    padding: 10px;
+    border: 1px solid #ddd;
+    text-align: left;
+}
+</style>

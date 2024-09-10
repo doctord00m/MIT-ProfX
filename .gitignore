@@ -1,0 +1,8 @@
+*.pyc
+__pycache__
+.env
+*.log
+*.pot
+*.pyc
+local_settings.py
+media
