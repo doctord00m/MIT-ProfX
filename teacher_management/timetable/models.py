@@ -11,6 +11,8 @@ class Class(models.Model):
     start_time = models.TimeField()
     end_time = models.TimeField()
     room = models.CharField(max_length=50)
+    additional_notes = models.TextField(blank=True, null=True)
+    faculty = models.CharField(max_length=100, blank=True, null=True)
 
     def __str__(self):
         return f"{self.subject} - {self.teacher.username} - {self.day}"
